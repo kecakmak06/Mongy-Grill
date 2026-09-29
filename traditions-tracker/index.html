@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Traditions at Scott - Mongolian Grill</title>
+
+<!-- ===== home-screen icon + web-app wiring =====
+     Relative paths (no leading slash) so it works from a GitHub Pages
+     project URL like username.github.io/reponame/ -->
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="favicon-32.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+
+<!-- name shown under the icon -->
+<meta name="apple-mobile-web-app-title" content="Traditions">
+<meta name="application-name" content="Traditions">
+
+<!-- launch without browser chrome, and let the page run under the
+     real iOS status bar so it sits in the empty 56px strip -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Traditions at Scott - Mongolian Grill : order tracker
+   Every dimension below was measured off 1179x2556 (3x) captures
+   and divided by 3, so the numbers are exact CSS px.
+   Text is positioned by measured BASELINE, not by padding.
+   ============================================================ */
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+:root{
+  color-scheme:light;
+  --purple:#572AF8;      /* accent: links, border, #146          */
+  --purple-lt:#A38AFF;   /* the close X is a lighter purple      */
+  --ink:#262626;         /* nearly all text                      */
+  --gray:#575655;        /* "Pickup ETA", "Currently N orders"   */
+  --banner:#EFEDEA;
+  --amber:#FFBA1E;
+  --green:#32855F;
+  --tile:#CECCCB;
+  --tile-bd:#7D7B7A;
+  --track:#D9D7D5;
+  --middot:#DBD9D7;
+  --endcircle:#E4E4E4;
+  --rule-a:#D1D1D1;      /* screen1 rule, screen2 rule 3         */
+  --rule-b:#E5E5E5;      /* screen2 rules 2 + 4                  */
+  --rule-nav:#E2DEF0;    /* under screen2 nav bar (purple tint)  */
+  --rule-rt:#DDD9EF;     /* inside real-time sheet               */
+  --etadiv:#CCCCCC;
+  --logo-bd:#A5A5A5;
+  --radar:#FA999F;
+  --handle:#C1C4C1;
+  --chev:#6B6B83;
+}
+
+html{background:#e9e9ea;}
+body{font-family:'Barlow',system-ui,-apple-system,sans-serif;background:#e9e9ea;color:#262626;}
+#wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+#shell{position:relative;width:393px;height:852px;flex:none;}
+
+/* --- 393 x 852 board. Always drawn 1:1 so one CSS px here is one CSS px
+       in the screenshots; only scaled down when the window is narrower
+       than 393, to avoid sideways scroll. Short window => scroll. --- */
+#stage{
+  position:absolute;left:0;top:0;
+  width:393px;height:852px;
+  background:#fff;overflow:hidden;
+  transform-origin:top left;
+  box-shadow:0 10px 50px rgba(0,0,0,.18);
+}
+
+.screen{position:absolute;inset:0;background:#fff;overflow:hidden;
+        isolation:isolate;
+        transition:transform .34s cubic-bezier(.4,0,.2,1);}
+#s2{transform:translateX(100%);}
+#s2.on{transform:translateX(0);}
+
+/* status strip is left empty (no fake iOS chrome); it only reserves
+   the 56px so every app element below lands at its measured y */
+.statusarea{position:absolute;left:0;top:0;width:393px;height:56px;z-index:60;}
+.gearbtn{position:absolute;right:14px;top:18px;width:20px;height:20px;
+         border:0;background:none;color:#B9B9BE;cursor:pointer;padding:0;}
+.gearbtn svg{width:20px;height:20px;display:block;}
+.gearbtn:hover{color:#8E8E93;}
+
+/* text primitive: absolutely placed, baseline set by JS from data-bl */
+.t{position:absolute;line-height:1;white-space:nowrap;color:var(--ink);}
+.ctr{left:0;width:393px;text-align:center;}
+a.t,.lk{color:var(--purple);text-decoration:none;}
+.rule{position:absolute;height:1px;}
+
+/* ============ SCREEN 1 ============ */
+.navbar{position:absolute;left:0;top:0;width:393px;height:97.67px;background:#fff;z-index:20;
+        box-shadow:0 2px 7px rgba(70,45,150,.20);}
+.xbtn{position:absolute;left:19px;top:66.33px;width:18px;height:18px;color:var(--purple-lt);cursor:pointer;}
+.xbtn svg{width:18px;height:18px;display:block;}
+
+.banner{position:absolute;left:0;top:97.67px;width:393px;height:37px;background:var(--banner);z-index:10;}
+
+.etarow{position:absolute;left:16px;display:flex;align-items:flex-start;color:var(--ink);}
+.etarow .big{font-size:21.5px;font-weight:800;line-height:1;color:var(--ink);}
+.etarow .bar{width:1px;height:16px;background:var(--etadiv);margin:4px 8px 0 9px;flex:none;}
+
+.pdot{position:absolute;width:16px;height:16px;border-radius:50%;}
+#pStart{left:40px;top:218px;background:var(--green);}
+#pMid{left:176.5px;top:218px;background:var(--middot);}
+#pTrack{position:absolute;left:56px;top:223px;width:257px;height:6px;border-radius:3px;background:var(--track);}
+#pEnd{position:absolute;left:313px;top:206px;width:40px;height:40px;border-radius:50%;background:var(--endcircle);}
+#pCheck{position:absolute;left:324.17px;top:219.5px;width:17.67px;height:13px;}
+
+.btn{position:absolute;left:16px;top:360px;width:361px;height:43.67px;
+     border:2px solid var(--purple);border-radius:22px;background:#fff;cursor:pointer;}
+.btn .lbl{position:absolute;left:0;width:357px;text-align:center;
+          font-family:inherit;font-size:13.5px;font-weight:700;color:var(--purple);line-height:1;}
+.btn:active{background:rgba(87,42,248,.06);}
+
+/* ---- real-time sheet ---- */
+#sheet{position:absolute;left:0;top:588px;width:393px;height:264px;background:#fff;
+       overflow:hidden;z-index:30;box-shadow:0 -2px 8px rgba(0,0,0,.10);
+       transition:top .36s cubic-bezier(.4,0,.2,1),height .36s cubic-bezier(.4,0,.2,1);}
+#sheet.open{top:0;height:852px;}
+#grip{position:absolute;left:0;top:0;width:393px;height:20px;cursor:grab;touch-action:none;z-index:5;}
+#grip i{position:absolute;left:178.5px;top:6px;width:36px;height:5px;border-radius:2.5px;background:var(--handle);display:block;}
+#sbody{position:absolute;left:0;top:0;width:393px;transition:top .36s cubic-bezier(.4,0,.2,1);}
+#sheet.open #sbody{top:59px;}
+
+.rthead{position:absolute;left:0;width:393px;display:flex;justify-content:center;align-items:flex-start;}
+.rthead .ttl{font-size:18.5px;font-weight:800;line-height:1;color:var(--ink);}
+.radar{width:13px;height:13px;margin:6.7px 10.67px 0 0;flex:none;overflow:hidden;}
+.radar path{
+  fill:none;stroke:var(--radar);stroke-width:3;stroke-linecap:butt;
+  vector-effect:non-scaling-stroke;
+  transform-box:view-box;transform-origin:13px 13px;
+  animation:ping 2.4s linear infinite;
+}
+.radar path:nth-child(2){animation-delay:.8s;}
+.radar path:nth-child(3){animation-delay:1.6s;}
+@keyframes ping{
+  0%  {transform:scale(.05);opacity:1;}
+  31% {transform:scale(.42);opacity:1;}
+  90% {transform:scale(1.13);opacity:0;}
+  100%{transform:scale(1.25);opacity:0;}
+}
+
+.legend{position:absolute;left:16px;display:flex;align-items:flex-start;color:var(--ink);}
+.legend .pill{width:16px;height:8px;border-radius:4px;margin-top:2.8px;flex:none;}
+.legend .pill.oin{background:var(--tile);}
+.legend .pill.prep{background:var(--amber);}
+.legend .pill.rdy{background:var(--green);}
+.legend .lab{font-size:12px;font-weight:400;line-height:1;margin-left:4.6px;color:var(--ink);}
+.legend .sp{width:17.2px;flex:none;}
+
+#grid{position:absolute;left:16px;width:361px;
+      display:grid;grid-template-columns:repeat(3,1fr);
+      column-gap:10.5px;row-gap:8px;}
+.tile{position:relative;height:38px;border-radius:4px;
+      box-shadow:0 1px 3px rgba(80,60,170,.20);}
+.tile.prep{background:var(--amber);}
+.tile.mine{background:var(--tile);border:3px solid var(--tile-bd);}
+.tile .num{position:absolute;left:0;width:100%;text-align:center;
+           font-size:13.5px;font-weight:600;line-height:1;color:#fff;}
+.tile.mine .num{width:calc(100% + 6px);left:-3px;}
+.person{position:absolute;left:12px;top:50%;margin-top:-8px;width:15.33px;height:16px;fill:#fff;}
+.tile.mine .person{left:9px;}
+
+/* ============ SCREEN 2 ============ */
+.nav2{position:absolute;left:0;top:0;width:393px;height:97.67px;background:#fff;}
+.backbtn{position:absolute;left:9.33px;top:66px;width:11px;height:19px;color:var(--purple);cursor:pointer;}
+.backbtn svg{width:11px;height:19px;display:block;}
+.logobox{position:absolute;left:16px;top:113.67px;width:56px;height:56px;border:.5px solid var(--logo-bd);}
+.logobox svg{display:block;width:56px;height:56px;}
+.rchev{position:absolute;left:366px;top:135.67px;width:7.67px;height:12px;color:var(--chev);}
+.rchev svg{width:7.67px;height:12px;display:block;}
+.dot{display:inline-block;width:2.33px;height:2.33px;background:currentColor;
+     vertical-align:2.4px;margin:0 4.5px;}
+.bul{position:absolute;left:56.67px;width:2.33px;height:2.33px;background:var(--gray);}
+
+/* ============ settings (demo control, not part of the emulation) ============ */
+#ovl{position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:200;
+     display:flex;align-items:flex-end;transition:opacity .28s;}
+#ovl.hide{opacity:0;pointer-events:none;}
+.sh{width:100%;background:#fff;border-radius:16px 16px 0 0;padding:16px 18px 26px;
+    transition:transform .28s cubic-bezier(.4,0,.2,1);font-size:13px;}
+#ovl.hide .sh{transform:translateY(100%);}
+.sh h3{font-size:15px;font-weight:800;text-align:center;margin-bottom:16px;color:var(--ink);}
+.fld{margin-bottom:12px;}
+.fld label{display:block;font-size:9.5px;font-weight:700;letter-spacing:.7px;
+           text-transform:uppercase;color:var(--gray);margin-bottom:5px;}
+.fld input{width:100%;border:1px solid #DDD;border-radius:9px;padding:9px 11px;
+           font-family:inherit;font-size:13px;color:var(--ink);outline:none;background:#F7F7F6;}
+.fld input:focus{border-color:var(--purple);}
+.sh button{width:100%;background:var(--purple);color:#fff;border:0;border-radius:999px;
+           padding:11px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<div id="wrap"><div id="shell">
+<div id="stage">
+
+  <!-- ================= SCREEN 1 : ORDER STATUS ================= -->
+  <div class="screen" id="s1">
+
+    <div class="navbar">
+      <span class="xbtn">
+        <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <path d="M2 2l14 14M16 2L2 16"/>
+        </svg>
+      </span>
+      <span class="t ctr" data-bl="81.7" style="font-size:17px;font-weight:800;">Traditions at Scott - Mongolian Grill</span>
+    </div>
+
+    <div class="banner">
+      <span class="t ctr" id="bnr" data-bl="26.03" style="font-size:21.5px;font-weight:800;">ORDER #146</span>
+    </div>
+
+    <span class="t" data-bl="163.33" style="left:16px;font-size:13.5px;font-weight:400;color:var(--gray);">Pickup ETA</span>
+
+    <div class="etarow" id="etarow" data-bl="191" data-fs="21.5">
+      <span class="big" id="etaTime">04:54PM</span>
+      <span class="bar"></span>
+      <span class="big">You're next</span>
+    </div>
+
+    <div class="pdot" id="pStart"></div>
+    <div id="pTrack"></div>
+    <div class="pdot" id="pMid"></div>
+    <div id="pEnd"></div>
+    <svg id="pCheck" viewBox="0 0 17.67 13" fill="none" stroke="#fff" stroke-width="4.67" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2.33 7.53L5.83 10.67L15.33 2.33"/>
+    </svg>
+    <span class="t" data-bl="257.67" style="left:40px;font-size:12.4px;font-weight:500;">In queue</span>
+
+    <span class="t" data-bl="297" style="left:16px;font-size:14.5px;font-weight:400;">Campus pickup at</span>
+    <a class="t" href="#" onclick="return false" data-bl="310" style="right:16px;font-size:12px;font-weight:700;">Get directions</a>
+    <span class="t" data-bl="324" style="left:16px;font-size:14.5px;font-weight:700;">160 W Woodruff Ave</span>
+
+    <button class="btn" onclick="toDetails()">
+      <span class="lbl t" data-bl="26.67">View order details</span>
+    </button>
+
+    <a class="t" href="#" onclick="return false" data-bl="442.67" style="left:32.67px;font-size:13.5px;font-weight:600;">Need help with your order?</a>
+
+    <span class="t" data-bl="512.67" style="left:31.67px;font-size:14.5px;font-weight:700;">Need to cancel?</span>
+    <span class="t" data-bl="537" style="left:31.33px;font-size:14.5px;font-weight:400;">One or more of the tenders is non-refundable.&nbsp;<a class="lk" href="#" onclick="return false">Get help</a></span>
+
+    <div class="rule" style="left:16px;top:556.33px;width:361px;background:var(--rule-a);"></div>
+
+    <!-- ---------- real-time line sheet ---------- -->
+    <div id="sheet">
+      <div id="grip"><i></i></div>
+      <div id="sbody">
+
+        <div class="rthead" data-bl="25.67" data-fs="18.5">
+          <svg class="radar" viewBox="0 0 13 13">
+            <path d="M0 13A13 13 0 0 1 13 0"/>
+            <path d="M0 13A13 13 0 0 1 13 0"/>
+            <path d="M0 13A13 13 0 0 1 13 0"/>
+          </svg>
+          <span class="ttl">Real-time Line Update</span>
+        </div>
+
+        <span class="t ctr" id="rtSub" data-bl="44.67" style="font-size:12px;font-weight:400;color:var(--gray);">Currently 4 orders in line</span>
+
+        <span class="t" data-bl="91" style="right:15.67px;font-size:12px;font-weight:400;">Your order</span>
+        <span class="t" id="rtNum" data-bl="109.67" style="right:16px;font-size:16.5px;font-weight:800;color:var(--purple);">#146</span>
+
+        <div class="legend" data-bl="127" data-fs="12">
+          <span class="pill oin"></span><span class="lab">Order in</span>
+          <span class="sp"></span>
+          <span class="pill prep"></span><span class="lab">Preparing</span>
+          <span class="sp"></span>
+          <span class="pill rdy"></span><span class="lab">Ready</span>
+        </div>
+        <span class="t" id="rtPick" data-bl="127" style="right:16px;font-size:12px;font-weight:400;">Pickup 04:54PM</span>
+
+        <div class="rule" style="left:16px;top:143px;width:361px;background:var(--rule-rt);"></div>
+        <div id="grid" style="top:155px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SCREEN 2 : VIEW ORDER ================= -->
+  <div class="screen" id="s2">
+    <div class="nav2">
+      <span class="backbtn" onclick="toOrder()">
+        <svg viewBox="0 0 11 19" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.5 1.5L2 9.5l7.5 8"/>
+        </svg>
+      </span>
+      <span class="t lk" onclick="toOrder()" data-bl="81.33" style="left:31px;font-size:17px;font-weight:500;cursor:pointer;">Back</span>
+      <span class="t ctr" data-bl="81.33" style="font-size:16.5px;font-weight:800;">View order</span>
+      <span class="t lk" data-bl="81.33" style="right:16px;font-size:17px;font-weight:500;cursor:pointer;">Help</span>
+    </div>
+    <div class="rule" style="left:0;top:97.67px;width:393px;background:var(--rule-nav);"></div>
+
+    <div class="logobox">
+      <svg viewBox="0 0 56 56">
+        <text x="28" y="30.33" text-anchor="middle" textLength="41" lengthAdjust="spacingAndGlyphs"
+              font-family="Barlow Condensed" font-weight="700" font-size="14.3" fill="#262626">RADITION</text>
+        <text x="28" y="35.33" text-anchor="middle" textLength="32.67" lengthAdjust="spacingAndGlyphs"
+              font-family="Barlow Condensed" font-weight="400" font-size="3.9" fill="#4A4A4A">– AT SCOTT –</text>
+      </svg>
+    </div>
+
+    <span class="t" data-bl="128.67" style="left:84px;font-size:16px;font-weight:700;">Traditions at Scott - Mongolian Grill</span>
+    <span class="t" data-bl="148.33" style="left:84px;font-size:11.5px;font-weight:400;">160 W Woodruff Ave<i class="dot"></i>(614) 247-8271</span>
+    <span class="t" data-bl="177" style="left:84px;font-size:12px;font-weight:400;">Your order:<span style="margin-left:9px;" id="dNum">#146</span></span>
+    <span class="rchev">
+      <svg viewBox="0 0 7.67 12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1.7 1.7L6 6l-4.3 4.3"/>
+      </svg>
+    </span>
+
+    <span class="t" data-bl="198.67" style="left:16px;font-size:11.5px;font-weight:700;">Pickup</span>
+    <span class="t" id="dDate" data-bl="220.67" style="left:16px;font-size:12px;font-weight:400;">Sep 24, 2026, 4:46 pm</span>
+    <a class="t" href="#" onclick="return false" data-bl="246" style="left:16px;font-size:13.5px;font-weight:400;">Need help?</a>
+    <div class="rule" style="left:0;top:262.67px;width:393px;background:var(--rule-b);"></div>
+
+    <span class="t" data-bl="290.33" style="left:15.67px;font-size:14.5px;font-weight:700;">Need to cancel?</span>
+    <span class="t" data-bl="314.67" style="left:15.33px;font-size:14.5px;font-weight:400;">One or more of the tenders is non-refundable.&nbsp;<a class="lk" href="#" onclick="return false">Get help</a></span>
+    <div class="rule" style="left:0;top:334px;width:393px;background:var(--rule-a);"></div>
+
+    <span class="t" data-bl="365" style="left:16px;font-size:15px;font-weight:700;">Order information</span>
+    <span class="t" data-bl="393.33" style="left:16px;font-size:13.5px;font-weight:400;">1</span>
+    <span class="t" data-bl="393.33" style="left:40.67px;font-size:13.5px;font-weight:400;">Build Your Own Stir-Fry</span>
+    <div id="mods"></div>
+
+    <div class="rule" style="left:16px;top:665.33px;width:377px;background:var(--rule-b);"></div>
+    <a class="t" href="#" onclick="return false" data-bl="702.67" style="right:16px;font-size:13.5px;font-weight:700;">View receipt</a>
+  </div>
+
+  <!-- status strip + demo gear (kept out of the app's own chrome so the
+       measured nav bars stay untouched) -->
+  <div class="statusarea">
+    <button class="gearbtn" onclick="openSet()" aria-label="Mockup settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3.2"/>
+        <path d="M19.4 13a7.7 7.7 0 000-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 00-1.7-1l-.4-2.6H10.9l-.4 2.6a7.6 7.6 0 00-1.7 1l-2.4-1-2 3.4L4.6 11a7.7 7.7 0 000 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 001.7 1l.4 2.6h4.2l.4-2.6a7.6 7.6 0 001.7-1l2.4 1 2-3.4z"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- settings -->
+  <div id="ovl" class="hide" onclick="if(event.target===this)closeSet()">
+    <div class="sh">
+      <h3>Mockup settings</h3>
+      <div class="fld"><label>Order number</label><input id="iNum" type="number" inputmode="numeric" value="146"></div>
+      <div class="fld"><label>Orders in line</label><input id="iLine" type="number" inputmode="numeric" min="1" max="12" value="4"></div>
+      <div class="fld"><label>Pickup time — blank = auto (+8 min)</label><input id="iTime" type="time"></div>
+      <button onclick="closeSet()">Done</button>
+    </div>
+  </div>
+
+</div>
+</div></div>
+
+<script>
+/* ---------------- data ---------------- */
+var MODS=['Lo Mein Noodles','Shredded Carrots','Baby Corn','Sliced Mushrooms','Peppers',
+          'Broccoli','Garlic','Salmon',"General Tso's",'Teriyaki',"General Tso's",'No - Dine In'];
+var MONTH=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var PERSON='<svg class="person" viewBox="0 0 15.33 16"><circle cx="7.67" cy="4.8" r="4.6"/>'+
+           '<path d="M0 16c0-4.35 3.43-7.1 7.67-7.1S15.33 11.65 15.33 16z"/></svg>';
+var MOD_BL0=412, MOD_PITCH=21.83;      /* measured first baseline + line pitch */
+var state={num:146,line:4,time:null};
+
+/* ---------------- baseline engine ----------------
+   Barlow's baseline sits 0.9em below a line-height:1 box, but rather than
+   trust that, measure it once from the actual loaded face and place every
+   [data-bl] element so its baseline lands on the measured y.            */
+var BL=0.9;
+function measureBaseline(){
+  var s=document.createElement('span');
+  s.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden;'+
+                  'font-family:Barlow,sans-serif;font-size:100px;line-height:1;white-space:nowrap;';
+  s.textContent='H';
+  var b=document.createElement('span');
+  b.style.cssText='display:inline-block;width:0;height:0;';
+  s.appendChild(b);document.body.appendChild(s);
+  var r=(b.getBoundingClientRect().top-s.getBoundingClientRect().top)/100;
+  s.remove();
+  if(r>0.5&&r<1.2) BL=r;
+}
+function placeBaselines(){
+  var els=document.querySelectorAll('[data-bl]');
+  for(var i=0;i<els.length;i++){
+    var el=els[i];
+    var fs=parseFloat(el.dataset.fs||getComputedStyle(el).fontSize);
+    el.style.top=(parseFloat(el.dataset.bl)-BL*fs)+'px';
+  }
+}
+
+/* ---------------- render ---------------- */
+function pad(n){return String(n).padStart(2,'0');}
+function pickupDate(){
+  if(state.time){var p=state.time.split(':');var d=new Date();d.setHours(+p[0],+p[1],0,0);return d;}
+  return new Date(Date.now()+8*60000);
+}
+function fmtETA(d){var h=d.getHours();return pad((h%12)||12)+':'+pad(d.getMinutes())+(h>=12?'PM':'AM');}
+function fmtDate(d){var h=d.getHours();return MONTH[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear()+
+  ', '+((h%12)||12)+':'+pad(d.getMinutes())+' '+(h>=12?'pm':'am');}
+
+function buildGrid(){
+  var g=document.getElementById('grid');g.innerHTML='';
+  var start=state.num-(state.line-1);
+  for(var i=start;i<=state.num;i++){
+    var t=document.createElement('div');
+    if(i===state.num){t.className='tile mine';t.innerHTML=PERSON+'<span class="num" data-bl="22.67">'+i+'</span>';}
+    else{t.className='tile prep';t.innerHTML='<span class="num" data-bl="22.67">'+i+'</span>';}
+    g.appendChild(t);
+  }
+}
+function buildMods(){
+  var m=document.getElementById('mods'),h='';
+  for(var i=0;i<MODS.length;i++){
+    var bl=MOD_BL0+i*MOD_PITCH;
+    h+='<i class="bul" style="top:'+(bl-5.2)+'px"></i>'+
+       '<span class="t" data-bl="'+bl+'" style="left:63px;font-size:12px;font-weight:400;color:var(--gray);">'+MODS[i]+'</span>';
+  }
+  m.innerHTML=h;
+}
+function render(){
+  var d=pickupDate(),eta=fmtETA(d);
+  document.getElementById('bnr').textContent='ORDER #'+state.num;
+  document.getElementById('etaTime').textContent=eta;
+  document.getElementById('rtNum').textContent='#'+state.num;
+  document.getElementById('rtSub').textContent='Currently '+state.line+' order'+(state.line===1?'':'s')+' in line';
+  document.getElementById('rtPick').textContent='Pickup '+eta;
+  document.getElementById('dNum').textContent='#'+state.num;
+  document.getElementById('dDate').textContent=fmtDate(d);
+  buildGrid();
+  placeBaselines();
+}
+
+/* ---------------- navigation ---------------- */
+function toDetails(){document.getElementById('s2').classList.add('on');}
+function toOrder(){document.getElementById('s2').classList.remove('on');}
+function openSet(){
+  document.getElementById('iNum').value=state.num;
+  document.getElementById('iLine').value=state.line;
+  document.getElementById('iTime').value=state.time||'';
+  document.getElementById('ovl').classList.remove('hide');
+}
+function closeSet(){document.getElementById('ovl').classList.add('hide');}
+function onInput(){
+  var n=parseInt(document.getElementById('iNum').value,10);
+  var l=parseInt(document.getElementById('iLine').value,10);
+  var t=document.getElementById('iTime').value;
+  if(!isNaN(n)&&n>0)state.num=n;
+  if(!isNaN(l)&&l>0)state.line=Math.min(l,12);
+  state.time=t||null;
+  render();
+}
+['iNum','iLine','iTime'].forEach(function(id){document.getElementById(id).addEventListener('input',onInput);});
+
+/* ---------------- sheet: tap or drag the handle ---------------- */
+var sheet=document.getElementById('sheet'),grip=document.getElementById('grip');
+var down=false,sy=0,moved=0;
+function isOpen(){return sheet.classList.contains('open');}
+grip.addEventListener('pointerdown',function(e){down=true;sy=e.clientY;moved=0;grip.setPointerCapture(e.pointerId);});
+grip.addEventListener('pointermove',function(e){if(down)moved=e.clientY-sy;});
+grip.addEventListener('pointerup',function(){
+  if(!down)return;down=false;
+  if(Math.abs(moved)<10)sheet.classList.toggle('open');
+  else if(!isOpen()&&moved<-30)sheet.classList.add('open');
+  else if(isOpen()&&moved>30)sheet.classList.remove('open');
+});
+
+/* ---------------- fit the 393x852 stage to the window ---------------- */
+function fit(){
+  var s=Math.min(1,window.innerWidth/393);
+  var st=document.getElementById('stage'),sh=document.getElementById('shell');
+  st.style.transform='scale('+s+')';
+  sh.style.width=(393*s)+'px';
+  sh.style.height=(852*s)+'px';
+}
+window.addEventListener('resize',fit);
+
+/* ---------------- boot ---------------- */
+buildMods();
+measureBaseline();
+render();
+fit();
+if(document.fonts&&document.fonts.ready){
+  document.fonts.ready.then(function(){measureBaseline();placeBaselines();fit();});
+}
+</script>
+</body>
+</html>
